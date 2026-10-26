@@ -5,7 +5,9 @@ import { DEMO_CATEGORIES, DEMO_SELLERS, DEMO_SERVICES, demoReviewsFor } from "..
 import { DEFAULT_FEATURE_FLAGS, DEFAULT_MEMBERSHIP_PLANS, DEFAULT_PLATFORM_SETTINGS } from "../src/config/membership-plans";
 
 const db = new PrismaClient();
+// One-click demo logins (DEMO_MODE=true) use this password, so leave SEED_PASSWORD unset on demo deployments.
 const DEMO_PASSWORD = "SwapdoDemo2026";
+const SEED_PASSWORD = process.env.SEED_PASSWORD || DEMO_PASSWORD;
 const now = new Date();
 const minutes = (n: number) => new Date(now.getTime() + n * 60_000);
 const days = (n: number) => minutes(n * 1440);
@@ -28,9 +30,13 @@ async function main() {
     console.log("Database already has data — skipping seed.");
     return;
   }
+  // A real production site must not ship admin@swapdo.dev with the password printed in the README.
+  if (process.env.VERCEL_ENV === "production" && process.env.DEMO_MODE !== "true" && !process.env.SEED_PASSWORD) {
+    throw new Error("Set SEED_PASSWORD (or DEMO_MODE=true) before the first production deploy — it becomes the password of the seeded admin, seller and user accounts.");
+  }
   console.log("Resetting database…");
   await reset();
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 12);
 
   // ── Platform configuration
   const plans = new Map<string, string>();
@@ -237,7 +243,7 @@ async function main() {
   });
 
   console.log(`Seeded ${DEMO_SERVICES.length + 1} services, ${DEMO_SELLERS.length + 1} sellers.`);
-  console.log(`Demo accounts (password: ${DEMO_PASSWORD}): user@swapdo.dev, seller@swapdo.dev, admin@swapdo.dev`);
+  console.log(`Demo accounts${SEED_PASSWORD === DEMO_PASSWORD ? ` (password: ${DEMO_PASSWORD})` : " (password: SEED_PASSWORD)"}: user@swapdo.dev, seller@swapdo.dev, admin@swapdo.dev`);
 }
 
 main()
