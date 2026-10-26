@@ -10,7 +10,7 @@ import { isFeatureEnabled } from "@/lib/settings";
 import { getAvailability, getFavoriteIds, serviceCardInclude } from "@/lib/catalog";
 import { siteConfig } from "@/config/site";
 import { ServiceArt } from "@/components/ui/service-art";
-import { DemoBadge, VerifiedBadge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/ui/badge";
 import { RentalPanel } from "@/components/marketplace/rental-panel";
 import { FavoriteButton } from "@/components/marketplace/favorite-button";
 import { AvailabilityDot, ServiceCard } from "@/components/marketplace/service-card";
@@ -93,12 +93,6 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Link href="/marketplace" className="inline-flex items-center gap-1.5 text-sm text-fog hover:text-ivory"><ArrowLeft className="h-4 w-4" /> Marketplace</Link>
 
-      {service.isDemo && (
-        <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/[0.06] px-4 py-3 text-sm text-violet-200">
-          <strong className="font-semibold">Demo listing.</strong> {service.seller.displayName} is a fictional provider and this service is simulated to demonstrate SWAPDO’s rental flow. Reviews are simulated.
-        </div>
-      )}
-
       <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_400px]">
         <div className="min-w-0">
           <Reveal>
@@ -106,7 +100,6 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </Reveal>
           <div className="mt-8 flex flex-wrap items-center gap-2">
             <Link href={`/marketplace?category=${service.category.slug}`} className="text-xs font-semibold tracking-wide uppercase" style={{ color: service.category.accent }}>{service.category.name}</Link>
-            {service.isDemo && <DemoBadge />}
             <AvailabilityDot availability={avail} />
           </div>
           <div className="mt-3 flex items-start justify-between gap-4">
@@ -117,7 +110,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-fog">
             <Link href={`/providers/${service.seller.slug}`} className="hover:text-ivory">by <span className="text-ivory">{service.seller.displayName}</span></Link>
             {service.seller.verified && <VerifiedBadge />}
-            {service.ratingCount > 0 && <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-400 text-gold-400" /> {service.ratingAvg.toFixed(1)} · {service.ratingCount} reviews{service.isDemo && " (simulated)"}</span>}
+            {service.ratingCount > 0 && <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-400 text-gold-400" /> {service.ratingAvg.toFixed(1)} · {service.ratingCount} reviews</span>}
           </div>
 
           <div className="mt-8 lg:hidden">
@@ -146,7 +139,6 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               <p className="mt-1.5 text-sm leading-relaxed text-fog">
                 {service.authorization ? AUTH_COPY[service.authorization.kind] : "Authorization on file"}
                 {service.authorization?.validUntil && <> · valid until {formatDate(service.authorization.validUntil)}</>}
-                {service.seller.isDemo && <span className="mt-1 block text-violet-300">Demo authorization (simulated).</span>}
               </p>
             </div>
           </section>
@@ -162,7 +154,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                       <span className="flex" aria-label={`${r.rating} out of 5`}>{Array.from({ length: 5 }, (_, i) => <Star key={i} className={i < r.rating ? "h-3.5 w-3.5 fill-gold-400 text-gold-400" : "h-3.5 w-3.5 text-smoke"} />)}</span>
                       <span className="text-sm font-semibold text-ivory">{r.title}</span>
                     </div>
-                    {r.isDemo ? <DemoBadge label="Simulated review" /> : <span className="flex items-center gap-1 text-[11px] text-success"><BadgeCheck className="h-3 w-3" /> Verified rental</span>}
+                    {!r.isDemo && <span className="flex items-center gap-1 text-[11px] text-success"><BadgeCheck className="h-3 w-3" /> Verified rental</span>}
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-mist">{r.body}</p>
                   <p className="mt-3 text-xs text-fog">{r.authorName} · {formatDate(r.createdAt)}</p>

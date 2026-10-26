@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getAvailability, getFavoriteIds, serviceCardInclude } from "@/lib/catalog";
 import { ServiceCard } from "@/components/marketplace/service-card";
-import { DemoBadge, VerifiedBadge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/ui/badge";
 import { LogoMark } from "@/components/ui/logo";
 import { formatDate } from "@/lib/utils";
 
@@ -34,14 +34,13 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       <header className="glass relative overflow-hidden rounded-3xl p-6 sm:p-10">
         <div className="pointer-events-none absolute -top-20 -right-20 opacity-[0.06]" aria-hidden><LogoMark className="h-80 w-80" /></div>
         <div className="flex flex-wrap items-center gap-2">
-          {seller.isDemo && <DemoBadge label="Demo provider" />}
           {seller.verified && <VerifiedBadge />}
         </div>
         <h1 className="mt-3 text-3xl font-semibold text-ivory sm:text-4xl">{seller.displayName}</h1>
         <p className="mt-3 max-w-2xl text-mist">{seller.bio}</p>
         <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-fog">
           <span>{seller.services.length} services</span>
-          {reviews > 0 && <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-400 text-gold-400" /> {avg.toFixed(1)} ({reviews} reviews{seller.isDemo ? ", simulated" : ""})</span>}
+          {reviews > 0 && <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-400 text-gold-400" /> {avg.toFixed(1)} ({reviews} reviews)</span>}
           <span>On SWAPDO since {formatDate(seller.createdAt, { month: "long", year: "numeric" })}</span>
           {seller.website && <span className="flex items-center gap-1"><Globe className="h-4 w-4" /> {seller.website.replace(/^https?:\/\//, "")}</span>}
         </div>

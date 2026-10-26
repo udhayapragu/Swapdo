@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Manrope } from "next/font/google";
+import { AmbientBackground } from "@/components/ui/ambient-background";
 import { ToastProvider } from "@/components/ui/toast";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${manrope.variable} ${instrument.variable}`}>
       <body>
+        <AmbientBackground />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

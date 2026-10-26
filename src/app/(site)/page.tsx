@@ -45,6 +45,7 @@ export default async function HomePage() {
         <CategoryGrid categories={categories} />
       </section>
 
+      {featured.length > 0 && (
       <section className="container-page py-16" aria-labelledby="featured-heading">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading align="left" eyebrow="Featured" title="Trending this" accent="week." className="max-w-xl" />
@@ -61,6 +62,7 @@ export default async function HomePage() {
           ))}
         </Stagger>
       </section>
+      )}
 
       <section id="how-it-works" className="relative scroll-mt-24 py-28">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_50%_0%,rgb(106_79_209/0.12),transparent)]" aria-hidden />

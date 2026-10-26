@@ -21,6 +21,8 @@ Demo accounts (password `SwapdoDemo2026`; one-click buttons appear on the sign-i
 
 Import the repo and set the environment variables from `.env.example`. Use Neon's **direct (non-pooled)** connection string for `DATABASE_URL`, because migrations need a direct connection. Vercel runs `npm run vercel-build`, which applies migrations, seeds demo data **only if the database is empty**, then builds. Redeploys never wipe data. If `DATABASE_URL` is missing the build fails loudly instead of deploying a broken site.
 
+Vercel deploys, production and preview (unless `DEMO_MODE=true`), never carry demo listings: the seed creates only platform config and `admin@swapdo.dev`, whose password comes from `SEED_PASSWORD`, and existing demo data is removed. Only local development seeds the demo catalog. `vercel.json` schedules the rental-expiry and billing jobs daily through Vercel Cron, which authenticates with `CRON_SECRET`. The full launch checklist is in [`docs/PRODUCTION-CHECKLIST.md`](docs/PRODUCTION-CHECKLIST.md).
+
 | Command | Purpose |
 | --- | --- |
 | `npm run build` / `npm start` | Production build / server |

@@ -39,7 +39,7 @@ export function Stagger({ children, className }: { children: ReactNode; classNam
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   const reduce = useReducedMotion();
   return (
-    <motion.div className={className} variants={reduce ? { hidden: { opacity: 0 }, show: { opacity: 1 } } : item}>
+    <motion.div className={className} variants={reduce ? { hidden: { opacity: 0, y: 0 }, show: { opacity: 1, y: 0 } } : item}>
       {children}
     </motion.div>
   );
