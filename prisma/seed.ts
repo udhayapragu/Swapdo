@@ -23,6 +23,11 @@ async function reset() {
 }
 
 async function main() {
+  // `--if-empty` (used by `vercel-build`) seeds a fresh database once and never wipes existing data.
+  if (process.argv.includes("--if-empty") && (await db.subscriptionPlan.count()) > 0) {
+    console.log("Database already has data — skipping seed.");
+    return;
+  }
   console.log("Resetting database…");
   await reset();
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
