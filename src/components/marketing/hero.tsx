@@ -165,7 +165,7 @@ export function Hero({ cards, serviceCount }: { cards: HeroCard[]; serviceCount:
           <span className="grid h-7 w-7 place-items-center rounded-full bg-obsidian-800">
             <LogoMark animated className="h-5 w-5" />
           </span>
-          <span><span className="font-semibold text-gold-200">{serviceCount}+</span> authorized services · rent by the hour</span>
+          {serviceCount > 0 ? <span><span className="font-semibold text-gold-200">{serviceCount}+</span> authorized services · rent by the hour</span> : <span>Authorized services · rent by the hour</span>}
         </motion.div>
 
         <h1 className="mx-auto max-w-5xl text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.035em] text-ivory sm:text-6xl lg:text-[5.4rem]">

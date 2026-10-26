@@ -3,13 +3,13 @@ import bcrypt from "bcryptjs";
 
 // Removes the demo catalog (isDemo sellers and listings) and the seeded @swapdo.dev accounts from a
 // database seeded with demo data, keeping platform config, categories and admin@swapdo.dev.
-// `--if-live` (used by `vercel-build`) only acts on a production deploy without DEMO_MODE=true.
+// `--if-live` (used by `vercel-build`) only acts on a Vercel deploy (production or preview) without DEMO_MODE=true.
 const db = new PrismaClient();
 const ADMIN_EMAIL = "admin@swapdo.dev";
 const DEMO_PASSWORD = "SwapdoDemo2026";
 
 async function main() {
-  const live = process.env.VERCEL_ENV === "production" && process.env.DEMO_MODE !== "true";
+  const live = process.env.VERCEL === "1" && process.env.DEMO_MODE !== "true";
   if (process.argv.includes("--if-live") && !live) return;
 
   // The seeded admin must not keep the password printed in the README. Checked first so a failed build changes nothing.

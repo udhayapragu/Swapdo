@@ -8,8 +8,9 @@ const db = new PrismaClient();
 // One-click demo logins (DEMO_MODE=true) use this password, so leave SEED_PASSWORD unset on demo deployments.
 const DEMO_PASSWORD = "SwapdoDemo2026";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || DEMO_PASSWORD;
-// A real production site starts with platform config, categories and one admin, never the demo catalog.
-const LIVE_SITE = process.env.VERCEL_ENV === "production" && process.env.DEMO_MODE !== "true";
+// Every Vercel deploy (production and preview) starts with platform config, categories and one admin, never the
+// demo catalog. Local development keeps it.
+const LIVE_SITE = process.env.VERCEL === "1" && process.env.DEMO_MODE !== "true";
 const now = new Date();
 const minutes = (n: number) => new Date(now.getTime() + n * 60_000);
 const days = (n: number) => minutes(n * 1440);

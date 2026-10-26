@@ -53,6 +53,9 @@
   --animate-float: float 9s ease-in-out infinite;
   --animate-spin-slow: spin 24s linear infinite;
   --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-drift-a: drift-a 38s ease-in-out infinite;
+  --animate-drift-b: drift-b 46s ease-in-out infinite;
+  --animate-drift-c: drift-c 54s ease-in-out infinite;
 
   @keyframes shimmer {
     from { background-position: -200% 0; }
@@ -61,6 +64,18 @@
   @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-14px); }
+  }
+  @keyframes drift-a {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(18vw, 12vh, 0) scale(1.15); }
+  }
+  @keyframes drift-b {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.1); }
+    50% { transform: translate3d(-16vw, -10vh, 0) scale(0.95); }
+  }
+  @keyframes drift-c {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(-10vw, -18vh, 0) scale(1.2); }
   }
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
@@ -152,6 +167,12 @@
   background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.09) 50%, rgb(255 255 255 / 0.04) 100%);
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
+}
+
+@utility ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
 }
 
 /* A soft gold light that sweeps across a card once on hover. */
