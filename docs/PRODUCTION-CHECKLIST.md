@@ -18,10 +18,11 @@ Generate each secret with `openssl rand -base64 32`, a different value for each.
 
 ## 2. What happens on deploy
 
-Vercel runs `npm run vercel-build`: `prisma migrate deploy` → seed **only if the database is empty** → remove demo data on production → `next build`.
+Vercel runs `npm run vercel-build`: migrations (`prisma/migrate-deploy.mjs`) → seed **only if the database is empty** → remove demo data on production → `next build`.
 
 - On **production** (without `DEMO_MODE=true`) the seed creates only membership plans, settings, categories and `admin@swapdo.dev`. Any demo listings, demo sellers and seeded `@swapdo.dev` accounts already in the database are deleted (`prisma/remove-demo.ts`), and a demo admin password is replaced with `SEED_PASSWORD`. Real listings and accounts are never touched.
 - **Preview** deploys and local development keep the full demo catalog.
+- Migrations always use Neon's direct host, even if `DATABASE_URL` is the `-pooler` one, or `DIRECT_URL` when set. If another deploy holds the migration lock (Prisma `P1002`), the build waits and retries up to 4 times instead of failing.
 
 ## 3. Scheduled jobs
 

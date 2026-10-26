@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && npm run db:seed:if-empty && tsx prisma/remove-demo.ts --if-live && next build",
+    "vercel-build": "node prisma/migrate-deploy.mjs && npm run db:seed:if-empty && tsx prisma/remove-demo.ts --if-live && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
