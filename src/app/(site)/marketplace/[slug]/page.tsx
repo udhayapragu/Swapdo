@@ -93,12 +93,6 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Link href="/marketplace" className="inline-flex items-center gap-1.5 text-sm text-fog hover:text-ivory"><ArrowLeft className="h-4 w-4" /> Marketplace</Link>
 
-      {service.isDemo && (
-        <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/[0.06] px-4 py-3 text-sm text-violet-200">
-          <strong className="font-semibold">Demo listing.</strong> {service.seller.displayName} is a fictional provider and this service is simulated to demonstrate SWAPDO’s rental flow. Reviews are simulated.
-        </div>
-      )}
-
       <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_400px]">
         <div className="min-w-0">
           <Reveal>

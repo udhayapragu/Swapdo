@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Mail, MapPin } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { footerNav, siteConfig } from "@/config/site";
-import { demoModeEnabled } from "@/lib/demo";
 
 export function SiteFooter() {
   return (
@@ -37,9 +36,7 @@ export function SiteFooter() {
       <div className="border-t hairline">
         <div className="container-page flex flex-col gap-3 py-6 text-xs text-smoke sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} SWAPDO. All rights reserved.</p>
-          {demoModeEnabled() ? (
-            <p>Demo build — listings marked “Demo” are simulated. Payments run in sandbox mode.</p>
-          ) : (process.env.PAYMENT_PROVIDER ?? "mock") === "mock" && <p>Payments run in sandbox mode.</p>}
+          {(process.env.PAYMENT_PROVIDER ?? "mock") === "mock" && <p>Payments run in sandbox mode.</p>}
         </div>
       </div>
     </footer>

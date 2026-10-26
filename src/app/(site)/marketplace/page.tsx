@@ -99,7 +99,6 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
               ))}
             </Stagger>
           )}
-          {services.some((s) => s.isDemo) && <p className="mt-10 text-center text-xs text-smoke">All listings in this build are demo listings from fictional providers. Ratings and reviews shown are simulated.</p>}
         </section>
       </div>
     </div>
