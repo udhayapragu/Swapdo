@@ -3,43 +3,17 @@
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { ArrowRight, Clock, Search, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { LogoMark } from "@/components/ui/logo";
 import { ServiceIcon } from "@/components/ui/icon";
 import { formatRemaining } from "@/components/ui/countdown";
+import { HeroCanvas } from "./hero-canvas";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SUGGESTIONS = ["AI video generation for 3 hours", "a coding copilot for the weekend", "live cricket tonight", "voice-overs in Tamil", "a YouTube channel manager"];
 
 export type HeroCard = { name: string; provider: string; price: string; icon: string; accent: string; minutesLeft: number };
-
-function Particles() {
-  // Deterministic positions so server and client markup match.
-  const dots = useMemo(
-    () =>
-      Array.from({ length: 26 }, (_, i) => ({
-        left: (i * 37.7) % 100,
-        top: (i * 53.3 + 11) % 100,
-        size: 1 + ((i * 7) % 3),
-        delay: (i * 0.73) % 9,
-        duration: 8 + ((i * 3) % 7),
-        opacity: 0.25 + ((i * 13) % 50) / 100,
-      })),
-    [],
-  );
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      {dots.map((d, i) => (
-        <span
-          key={i}
-          className="absolute animate-float rounded-full bg-gold-300"
-          style={{ left: `${d.left}%`, top: `${d.top}%`, width: d.size, height: d.size, opacity: d.opacity, animationDelay: `${d.delay}s`, animationDuration: `${d.duration}s`, boxShadow: "0 0 8px 1px rgb(233 207 152 / 0.6)" }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function FloatingCard({ card, className, y, delay }: { card: HeroCard; className: string; y: MotionValue<number>; delay: number }) {
   const [left, setLeft] = useState(card.minutesLeft * 60_000);
@@ -152,7 +126,7 @@ export function Hero({ cards, serviceCount }: { cards: HeroCard[]; serviceCount:
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-obsidian-950 to-transparent" />
       </motion.div>
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(255_255_255/0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgb(255_255_255/0.025)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" aria-hidden />
-      <Particles />
+      <HeroCanvas />
 
       {/* Side gutters only (≥1380px) so cards never overlap the headline. */}
       {cards[0] && <FloatingCard card={cards[0]} className="top-[24%] left-[2.5%] 2xl:left-[6%]" y={y1} delay={0.5} />}
