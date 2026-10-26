@@ -8,6 +8,8 @@ const db = new PrismaClient();
 // One-click demo logins (DEMO_MODE=true) use this password, so leave SEED_PASSWORD unset on demo deployments.
 const DEMO_PASSWORD = "SwapdoDemo2026";
 const SEED_PASSWORD = process.env.SEED_PASSWORD || DEMO_PASSWORD;
+// A real production site starts with platform config, categories and one admin, never the demo catalog.
+const LIVE_SITE = process.env.VERCEL_ENV === "production" && process.env.DEMO_MODE !== "true";
 const now = new Date();
 const minutes = (n: number) => new Date(now.getTime() + n * 60_000);
 const days = (n: number) => minutes(n * 1440);
@@ -31,8 +33,8 @@ async function main() {
     return;
   }
   // A real production site must not ship admin@swapdo.dev with the password printed in the README.
-  if (process.env.VERCEL_ENV === "production" && process.env.DEMO_MODE !== "true" && !process.env.SEED_PASSWORD) {
-    throw new Error("Set SEED_PASSWORD (or DEMO_MODE=true) before the first production deploy — it becomes the password of the seeded admin, seller and user accounts.");
+  if (LIVE_SITE && !process.env.SEED_PASSWORD) {
+    throw new Error("Set SEED_PASSWORD (or DEMO_MODE=true) before the first production deploy — it becomes the password of admin@swapdo.dev.");
   }
   console.log("Resetting database…");
   await reset();
@@ -46,6 +48,21 @@ async function main() {
   }
   for (const [key, value] of Object.entries(DEFAULT_PLATFORM_SETTINGS)) await db.platformSetting.create({ data: { key, value } });
   for (const f of DEFAULT_FEATURE_FLAGS) await db.featureFlag.create({ data: f });
+
+  // ── Admin account and categories (every site)
+  const admin = await db.user.create({ data: { email: "admin@swapdo.dev", name: "Aditi Rao", passwordHash, role: "ADMIN" } });
+  await db.subscription.create({ data: { userId: admin.id, planId: plans.get("FREE")!, status: "ACTIVE", currentPeriodStart: now } });
+  const categories = new Map<string, string>();
+  for (const [i, c] of DEMO_CATEGORIES.entries()) {
+    const row = await db.category.create({ data: { ...c, sortOrder: i } });
+    categories.set(c.slug, row.id);
+  }
+  if (LIVE_SITE) {
+    console.log("Seeded platform config, categories and admin@swapdo.dev (password: SEED_PASSWORD). No demo data on a live site.");
+    return;
+  }
+
+  // ── Demo data from here on
   await db.promoCode.createMany({
     data: [
       { code: "WELCOME10", description: "10% off your first rental", percentOff: 10, maxRedemptions: 1000 },
@@ -55,7 +72,6 @@ async function main() {
   });
 
   // ── Accounts
-  const admin = await db.user.create({ data: { email: "admin@swapdo.dev", name: "Aditi Rao", passwordHash, role: "ADMIN" } });
   const customer = await db.user.create({ data: { email: "user@swapdo.dev", name: "Rahul Verma", passwordHash } });
   const sellerUser = await db.user.create({ data: { email: "seller@swapdo.dev", name: "Neha Kapoor", passwordHash, role: "SELLER" } });
   const extraUsers = await Promise.all(
@@ -63,13 +79,6 @@ async function main() {
       db.user.create({ data: { email: `member${i + 1}@swapdo.dev`, name, passwordHash, createdAt: days(-(i * 9 + 3)) } }),
     ),
   );
-
-  // ── Categories
-  const categories = new Map<string, string>();
-  for (const [i, c] of DEMO_CATEGORIES.entries()) {
-    const row = await db.category.create({ data: { ...c, sortOrder: i } });
-    categories.set(c.slug, row.id);
-  }
 
   // ── Sellers (seller@swapdo.dev owns Northwind so the seller dashboard has data)
   const sellers = new Map<string, { id: string; authId: string }>();
@@ -133,7 +142,7 @@ async function main() {
   await db.subscription.create({
     data: { userId: customer.id, planId: plans.get("PRO")!, interval: "MONTHLY", status: "ACTIVE", currentPeriodStart: days(-12), currentPeriodEnd: days(18) },
   });
-  for (const u of [admin, sellerUser, applicant]) {
+  for (const u of [sellerUser, applicant]) {
     await db.subscription.create({ data: { userId: u.id, planId: plans.get("FREE")!, status: "ACTIVE", currentPeriodStart: now } });
   }
   for (const [i, u] of extraUsers.entries()) {

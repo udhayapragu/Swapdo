@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `DATABASE_URL` | Yes | Neon Postgres **direct (non-pooled)** connection string. The build fails without it. |
 | `APP_URL` | Yes | The live URL, e.g. `https://swapdo.vercel.app` (links, sitemap, OG image). |
-| `SEED_PASSWORD` | First production deploy, unless `DEMO_MODE=true` | Password for the seeded `admin@`, `seller@` and `user@swapdo.dev` accounts. The build fails without it. |
+| `SEED_PASSWORD` | Production, unless `DEMO_MODE=true` | Password for `admin@swapdo.dev`. Needed when the production database is first seeded, or while the admin still has the README demo password; the build fails without it then. |
 | `PAYMENT_PROVIDER` | Yes | `mock` until Razorpay is approved, then `razorpay`. |
 | `MOCK_WEBHOOK_SECRET` | Yes (mock) | Long random string. Without it a public fallback secret is used. |
 | `ACCESS_GRANT_SECRET` | Yes | Long random string. Signs rental access tokens. |
@@ -18,7 +18,10 @@ Generate each secret with `openssl rand -base64 32`, a different value for each.
 
 ## 2. What happens on deploy
 
-Vercel runs `npm run vercel-build`: `prisma migrate deploy` → seed demo data **only if the database is empty** → `next build`. Redeploys never wipe data.
+Vercel runs `npm run vercel-build`: `prisma migrate deploy` → seed **only if the database is empty** → remove demo data on production → `next build`.
+
+- On **production** (without `DEMO_MODE=true`) the seed creates only membership plans, settings, categories and `admin@swapdo.dev`. Any demo listings, demo sellers and seeded `@swapdo.dev` accounts already in the database are deleted (`prisma/remove-demo.ts`), and a demo admin password is replaced with `SEED_PASSWORD`. Real listings and accounts are never touched.
+- **Preview** deploys and local development keep the full demo catalog.
 
 ## 3. Scheduled jobs
 
@@ -26,8 +29,8 @@ Vercel runs `npm run vercel-build`: `prisma migrate deploy` → seed demo data *
 
 ## 4. Before real customers use it
 
-- Sign in as `admin@swapdo.dev` with your `SEED_PASSWORD` and change it, or create your own admin.
-- The catalog is demo data (marked "Demo"). Replace it with real sellers and listings.
+- Sign in as `admin@swapdo.dev` with your `SEED_PASSWORD`, or create your own admin.
+- The marketplace starts empty ("New listings are on their way") until you approve real sellers and listings.
 - Keep Razorpay off until the merchant account is approved.
 
 ## 5. Run locally

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && npm run db:seed:if-empty && next build",
+    "vercel-build": "prisma migrate deploy && npm run db:seed:if-empty && tsx prisma/remove-demo.ts --if-live && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -14,6 +14,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:if-empty": "tsx prisma/seed.ts --if-empty",
+    "db:remove-demo": "tsx prisma/remove-demo.ts",
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate"
   },

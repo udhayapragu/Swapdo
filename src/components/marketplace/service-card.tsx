@@ -29,7 +29,7 @@ export function ServiceCard({ service, favorite = false, availability, className
   const from = startingPrice(service);
   const cheapest = service.plans.find((p) => p.priceMinor === from);
   return (
-    <article className={cn("group relative flex h-full flex-col overflow-hidden rounded-2xl glass transition-[transform,box-shadow,border-color] duration-500 ease-out hover:-translate-y-1 hover:border-gold-400/30 hover:shadow-gold", className)}>
+    <article className={cn("group card-sheen relative flex h-full flex-col overflow-hidden rounded-2xl glass transition-[transform,box-shadow,border-color] duration-500 ease-out hover:-translate-y-1 hover:border-gold-400/30 hover:shadow-gold", className)}>
       <div className="relative">
         <ServiceArt seed={service.slug} accent={service.accent} icon={service.icon} className="aspect-[16/9] transition-transform duration-700 group-hover:scale-[1.03]" />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { SearchX, Sparkles } from "lucide-react";
 import { AdvancedFilters, MarketplaceFilters } from "@/components/marketplace/filters";
 import { ServiceCard } from "@/components/marketplace/service-card";
 import { EmptyState } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { ServiceArt } from "@/components/ui/service-art";
+import { Stagger, StaggerItem } from "@/components/ui/reveal";
 import { getAvailability, getCategories, getFavoriteIds, parseMarketplaceQuery, searchServices } from "@/lib/catalog";
 import { getCurrentUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -32,6 +33,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
   ]);
   const availability = await getAvailability(services);
   const activeCategory = categories.find((c) => c.slug === query.category);
+  const filtered = Object.values(sp).some((v) => v !== undefined && v !== "");
 
   return (
     <div className="container-page pt-24 lg:pt-28">
@@ -80,18 +82,24 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         </aside>
 
         <section aria-label="Results">
-          {services.length === 0 ? (
+          {services.length === 0 && !filtered ? (
+            <div className="glass rounded-2xl">
+              <EmptyState icon={<Sparkles className="h-5 w-5" />} title="New listings are on their way" body="We’re onboarding our first authorized providers. Check back soon, or list your own service." action={<ButtonLink href="/sell" variant="outline" size="sm">Become a seller</ButtonLink>} />
+            </div>
+          ) : services.length === 0 ? (
             <div className="glass rounded-2xl">
               <EmptyState icon={<SearchX className="h-5 w-5" />} title="No services match those filters" body="Try a different search term, widen the price range or browse all categories." action={<ButtonLink href="/marketplace" variant="outline" size="sm">Reset filters</ButtonLink>} />
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <Stagger key={JSON.stringify(sp)} className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {services.map((s) => (
-                <ServiceCard key={s.id} service={s} favorite={favorites.has(s.id)} availability={availability.get(s.id)} />
+                <StaggerItem key={s.id}>
+                  <ServiceCard service={s} favorite={favorites.has(s.id)} availability={availability.get(s.id)} />
+                </StaggerItem>
               ))}
-            </div>
+            </Stagger>
           )}
-          <p className="mt-10 text-center text-xs text-smoke">All listings in this build are demo listings from fictional providers. Ratings and reviews shown are simulated.</p>
+          {services.some((s) => s.isDemo) && <p className="mt-10 text-center text-xs text-smoke">All listings in this build are demo listings from fictional providers. Ratings and reviews shown are simulated.</p>}
         </section>
       </div>
     </div>
