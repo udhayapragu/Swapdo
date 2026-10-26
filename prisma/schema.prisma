@@ -1,0 +1,654 @@
+// SWAPDO data model
+// Money is always stored as integer minor units (paise for INR).
+// Time-based access is enforced server-side using startsAt / endsAt.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Identity & access ─────────────────────────
+
+enum Role {
+  USER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(USER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sessions       Session[]
+  seller         Seller?
+  rentals        Rental[]
+  subscription   Subscription?
+  orders         Order[]
+  credits        CreditLedger[]
+  usage          UsageRecord[]
+  reviews        Review[]
+  favorites      Favorite[]
+  recentViews    RecentView[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]      @relation("AuditActor")
+  supportTickets SupportTicket[]
+  refundRequests Refund[]        @relation("RefundRequester")
+  fraudFlags     FraudFlag[]
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ───────────────────────── Sellers & authorization ─────────────────────────
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model Seller {
+  id                String       @id @default(cuid())
+  userId            String       @unique
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug              String       @unique
+  displayName       String
+  bio               String       @default("")
+  website           String?
+  country           String       @default("IN")
+  status            SellerStatus @default(PENDING)
+  verified          Boolean      @default(false)
+  isDemo            Boolean      @default(false)
+  verificationNotes String?
+  // Overrides the platform commission when set (basis points, 1500 = 15%).
+  commissionRateBps Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  authorizations ProviderAuthorization[]
+  services       Service[]
+  commissions    Commission[]
+  payouts        Payout[]
+  tickets        SupportTicket[]
+
+  @@index([status])
+}
+
+enum AuthorizationKind {
+  OWN_SERVICE
+  OFFICIAL_API
+  RESELLER_AGREEMENT
+  CONTENT_LICENSE
+}
+
+enum AuthorizationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+// Evidence that a seller is legally allowed to offer a service for time-based access.
+model ProviderAuthorization {
+  id           String              @id @default(cuid())
+  sellerId     String
+  seller       Seller              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  kind         AuthorizationKind
+  title        String
+  reference    String // agreement number, API program id, license id …
+  documentUrl  String?
+  status       AuthorizationStatus @default(PENDING)
+  validUntil   DateTime?
+  reviewedById String?
+  reviewNotes  String?
+  createdAt    DateTime            @default(now())
+
+  services Service[]
+
+  @@index([sellerId, status])
+}
+
+// ───────────────────────── Catalog ─────────────────────────
+
+model Category {
+  id        String  @id @default(cuid())
+  slug      String  @unique
+  name      String
+  tagline   String
+  icon      String
+  accent    String // hex color used for the category's visual identity
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  services Service[]
+}
+
+enum ServiceStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AccessMethod {
+  OFFICIAL_API // proxied through the provider's official API
+  OAUTH // provider-issued delegated access
+  PROVIDER_TOKEN // short-lived provider-issued token
+  MANAGED_SERVICE // human-delivered service (e.g. channel management)
+  DEMO // simulated access for demo listings
+}
+
+model Service {
+  id               String        @id @default(cuid())
+  slug             String        @unique
+  sellerId         String
+  seller           Seller        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  authorizationId  String?
+  authorization    ProviderAuthorization? @relation(fields: [authorizationId], references: [id])
+  name             String
+  tagline          String
+  description      String
+  features         String[]
+  tags             String[]
+  accent           String        @default("#d4af6a")
+  icon             String        @default("sparkles")
+  status           ServiceStatus @default(DRAFT)
+  accessMethod     AccessMethod  @default(DEMO)
+  isDemo           Boolean       @default(false)
+  featured         Boolean       @default(false)
+  // Max concurrent active rentals the provider can serve (null = no cap).
+  capacity         Int?
+  popularity       Int           @default(0)
+  ratingAvg        Float         @default(0)
+  ratingCount      Int           @default(0)
+  moderationNotes  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  plans       RentalPlan[]
+  rentals     Rental[]
+  reviews     Review[]
+  favorites   Favorite[]
+  recentViews RecentView[]
+  usage       UsageRecord[]
+
+  @@index([status, categoryId])
+  @@index([status, popularity])
+  @@index([sellerId])
+}
+
+model RentalPlan {
+  id              String  @id @default(cuid())
+  serviceId       String
+  service         Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  durationMinutes Int
+  priceMinor      Int
+  // Units of usage included (generations, requests, minutes…). null = fair use.
+  usageLimit      Int?
+  usageUnit       String  @default("requests")
+  active          Boolean @default(true)
+
+  rentals Rental[]
+
+  @@unique([serviceId, durationMinutes])
+}
+
+// ───────────────────────── Rentals ─────────────────────────
+
+enum RentalStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+model Rental {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service      @relation(fields: [serviceId], references: [id])
+  planId      String
+  plan        RentalPlan   @relation(fields: [planId], references: [id])
+  status      RentalStatus @default(PENDING_PAYMENT)
+  // Authoritative access window — only ever written by the server.
+  startsAt    DateTime?
+  endsAt      DateTime?
+  durationMinutes Int
+  usageLimit  Int?
+  usageCount  Int          @default(0)
+  version     Int          @default(0)
+  cancelledAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  orders Order[]
+  usage  UsageRecord[]
+
+  @@index([userId, status])
+  @@index([serviceId, status])
+  @@index([status, endsAt])
+}
+
+// ───────────────────────── Memberships ─────────────────────────
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+model SubscriptionPlan {
+  id                   String   @id @default(cuid())
+  code                 String   @unique // FREE | STARTER | PRO | ELITE
+  name                 String
+  tagline              String
+  monthlyPriceMinor    Int
+  annualPriceMinor     Int
+  monthlyCredits       Int
+  maxConcurrentRentals Int
+  rentalDiscountBps    Int
+  features             String[]
+  highlighted          Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  gracePeriodDays      Int      @default(3)
+  active               Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+
+  subscriptions Subscription[] @relation("CurrentPlan")
+  scheduled     Subscription[] @relation("ScheduledPlan")
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId             String
+  plan               SubscriptionPlan   @relation("CurrentPlan", fields: [planId], references: [id])
+  interval           BillingInterval    @default(MONTHLY)
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  // Downgrades take effect at the next renewal.
+  scheduledPlanId    String?
+  scheduledPlan      SubscriptionPlan?  @relation("ScheduledPlan", fields: [scheduledPlanId], references: [id])
+  graceUntil         DateTime?
+  // Sandbox switch to exercise the failed-renewal path.
+  simulateRenewalFailure Boolean        @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([status, currentPeriodEnd])
+}
+
+model CreditLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta     Int
+  reason    String
+  refType   String?
+  refId     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  // A given grant/charge can only be booked once.
+  @@unique([refType, refId, reason])
+}
+
+model UsageRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rentalId  String?
+  rental    Rental?  @relation(fields: [rentalId], references: [id], onDelete: SetNull)
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  units     Int      @default(1)
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([rentalId])
+}
+
+// ───────────────────────── Orders & payments ─────────────────────────
+
+enum OrderPurpose {
+  RENTAL_NEW
+  RENTAL_EXTEND
+  SUBSCRIPTION
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id                   String           @id @default(cuid())
+  number               String           @unique
+  userId               String
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose              OrderPurpose
+  status               OrderStatus      @default(PENDING)
+  currency             String           @default("INR")
+  subtotalMinor        Int
+  discountMinor        Int              @default(0)
+  creditsApplied       Int              @default(0)
+  totalMinor           Int
+  description          String
+  rentalId             String?
+  rental               Rental?          @relation(fields: [rentalId], references: [id])
+  extendMinutes        Int?
+  subscriptionPlanCode String?
+  billingInterval      BillingInterval?
+  promoCodeId          String?
+  promoCode            PromoCode?       @relation(fields: [promoCodeId], references: [id])
+  paidAt               DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  payments   Payment[]
+  refunds    Refund[]
+  commission Commission?
+  fraudFlags FraudFlag[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([rentalId])
+}
+
+enum PaymentStatus {
+  CREATED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String
+  providerOrderId   String        @unique
+  providerPaymentId String?       @unique
+  status            PaymentStatus @default(CREATED)
+  amountMinor       Int
+  failureReason     String?
+  sandbox           Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  refunds Refund[]
+
+  @@index([orderId])
+}
+
+// Every processed provider event is recorded so duplicates are ignored.
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  type        String
+  payload     Json
+  processedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+model Refund {
+  id            String       @id @default(cuid())
+  orderId       String
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentId     String?
+  payment       Payment?     @relation(fields: [paymentId], references: [id])
+  amountMinor   Int
+  reason        String
+  status        RefundStatus @default(REQUESTED)
+  requestedById String
+  requestedBy   User         @relation("RefundRequester", fields: [requestedById], references: [id])
+  reviewedById  String?
+  reviewNotes   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status])
+}
+
+enum CommissionStatus {
+  PENDING
+  AVAILABLE
+  PAID_OUT
+  REVERSED
+}
+
+model Commission {
+  id              String           @id @default(cuid())
+  orderId         String           @unique
+  order           Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  sellerId        String
+  seller          Seller           @relation(fields: [sellerId], references: [id])
+  grossMinor      Int
+  rateBps         Int
+  commissionMinor Int
+  netMinor        Int
+  status          CommissionStatus @default(AVAILABLE)
+  payoutId        String?
+  payout          Payout?          @relation(fields: [payoutId], references: [id])
+  createdAt       DateTime         @default(now())
+
+  @@index([sellerId, status])
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  sellerId    String
+  seller      Seller       @relation(fields: [sellerId], references: [id])
+  amountMinor Int
+  status      PayoutStatus @default(REQUESTED)
+  notes       String?
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+
+  commissions Commission[]
+
+  @@index([sellerId, status])
+}
+
+model PromoCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  description    String    @default("")
+  percentOff     Int
+  maxRedemptions Int?
+  redemptions    Int       @default(0)
+  expiresAt      DateTime?
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  orders Order[]
+}
+
+// ───────────────────────── Engagement ─────────────────────────
+
+model Review {
+  id         String   @id @default(cuid())
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName String
+  rating     Int
+  title      String
+  body       String
+  isDemo     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, serviceId])
+  @@index([serviceId, createdAt])
+}
+
+model Favorite {
+  userId    String
+  serviceId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, serviceId])
+}
+
+model RecentView {
+  userId    String
+  serviceId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+
+  @@id([userId, serviceId])
+  @@index([userId, viewedAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+}
+
+model SupportTicket {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sellerId  String?
+  seller    Seller?      @relation(fields: [sellerId], references: [id])
+  subject   String
+  body      String
+  status    TicketStatus @default(OPEN)
+  priority  String       @default("normal")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([status])
+}
+
+// ───────────────────────── Platform governance ─────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+enum FraudStatus {
+  OPEN
+  DISMISSED
+  CONFIRMED
+}
+
+model FraudFlag {
+  id        String      @id @default(cuid())
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderId   String?
+  order     Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  reason    String
+  severity  String      @default("medium")
+  status    FraudStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+
+  @@index([status])
+}
+
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  description String
+  updatedAt   DateTime @updatedAt
+}
+
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
