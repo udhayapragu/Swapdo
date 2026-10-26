@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/dashboard/shell";
 import { DataTable } from "@/components/dashboard/data-table";
 import { ActionButton } from "@/components/admin/action-button";
 import { StatusBadge } from "@/components/ui/status-pill";
-import { DemoBadge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { durationShort } from "@/config/durations";
 
@@ -38,7 +37,7 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
         {services.map((s) => (
           <tr key={s.id}>
             <td className="max-w-sm">
-              <p className="flex items-center gap-2 font-medium text-ivory">{s.name} {s.isDemo && <DemoBadge label="Demo" />}</p>
+              <p className="flex items-center gap-2 font-medium text-ivory">{s.name}</p>
               <p className="text-xs text-fog">{s.category.name} · {s.accessMethod.replace(/_/g, " ").toLowerCase()}</p>
               <p className="mt-1 text-xs text-mist line-clamp-2">{s.tagline}</p>
             </td>

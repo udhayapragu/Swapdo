@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BadgeCheck, FlaskConical } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tones = {
@@ -29,10 +29,3 @@ export function VerifiedBadge({ className }: { className?: string }) {
   );
 }
 
-export function DemoBadge({ label = "Demo listing", className }: { label?: string; className?: string }) {
-  return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border border-violet-400/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-violet-300 uppercase", className)} title="Simulated listing for demonstration. Not a real provider.">
-      <FlaskConical className="h-3 w-3" aria-hidden /> {label}
-    </span>
-  );
-}

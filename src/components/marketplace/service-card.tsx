@@ -4,7 +4,7 @@ import type { ServiceCardData } from "@/lib/catalog";
 import { startingPrice } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
 import { durationShort } from "@/config/durations";
-import { DemoBadge, VerifiedBadge } from "@/components/ui/badge";
+import { VerifiedBadge } from "@/components/ui/badge";
 import { ServiceArt } from "@/components/ui/service-art";
 import { FavoriteButton } from "./favorite-button";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,6 @@ export function ServiceCard({ service, favorite = false, availability, className
       <div className="relative">
         <ServiceArt seed={service.slug} accent={service.accent} icon={service.icon} className="aspect-[16/9] transition-transform duration-700 group-hover:scale-[1.03]" />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          {service.isDemo && <DemoBadge />}
           {service.featured && <span className="rounded-full border border-gold-400/30 bg-black/50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-gold-200 uppercase backdrop-blur-sm">Featured</span>}
         </div>
         <FavoriteButton serviceId={service.id} initial={favorite} className="absolute top-3 right-3 z-10" />

@@ -10,7 +10,6 @@ import { PageHeader } from "@/components/dashboard/shell";
 import { CountdownRing, RentalConsole } from "@/components/dashboard/rental-console";
 import { RentalStatusPill } from "@/components/ui/status-pill";
 import { ServiceArt } from "@/components/ui/service-art";
-import { DemoBadge } from "@/components/ui/badge";
 import { durationLabel } from "@/config/durations";
 import { formatMoney } from "@/lib/money";
 import { formatDateTime } from "@/lib/utils";
@@ -56,7 +55,7 @@ export default async function RentalDetailPage({ params, searchParams }: { param
       <PageHeader
         title={rental.service.name}
         description={`by ${rental.service.seller.displayName} · ${durationLabel(rental.durationMinutes)} rental`}
-        action={<div className="flex items-center gap-2">{rental.service.isDemo && <DemoBadge />}<RentalStatusPill status={status} /></div>}
+        action={<div className="flex items-center gap-2"><RentalStatusPill status={status} /></div>}
       />
 
       <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
@@ -102,7 +101,6 @@ export default async function RentalDetailPage({ params, searchParams }: { param
             usageLimit={rental.usageLimit}
             plans={rental.service.status === "APPROVED" ? rental.service.plans.map((p) => ({ id: p.id, durationMinutes: p.durationMinutes, priceMinor: p.priceMinor })) : []}
             refundable={refundable}
-            simulated={rental.service.isDemo}
             accessMethod={rental.service.accessMethod}
           />
           <div className="glass rounded-2xl p-5">

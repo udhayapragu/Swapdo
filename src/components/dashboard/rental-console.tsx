@@ -65,10 +65,10 @@ export function CountdownRing({ startsAt, endsAt, serverNow, live }: { startsAt:
 }
 
 export function RentalConsole({
-  rentalId, live, pending, usageUnit, usageCount, usageLimit, plans, refundable, simulated, accessMethod,
+  rentalId, live, pending, usageUnit, usageCount, usageLimit, plans, refundable, accessMethod,
 }: {
   rentalId: string; live: boolean; pending: boolean; usageUnit: string; usageCount: number; usageLimit: number | null; plans: Plan[];
-  refundable: { orderId: string } | null; simulated: boolean; accessMethod: string;
+  refundable: { orderId: string } | null; accessMethod: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -145,7 +145,6 @@ export function RentalConsole({
         <div className="glass overflow-hidden rounded-2xl">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b hairline px-5 py-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-ivory"><Terminal className="h-4 w-4 text-gold-300" /> Service console</div>
-            {simulated && <span className="rounded-full border border-violet-400/25 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-300 uppercase">Simulated access</span>}
           </div>
           <div className="p-5">
             {!session ? (
