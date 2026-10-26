@@ -1,12 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { hashPassword, verifyPassword } from "../src/lib/auth/password";
+import { DEMO_PASSWORD, missingSeedPasswordHelp, readSeedPassword } from "./seed-password";
 
 // Removes the demo catalog (isDemo sellers and listings) and the seeded @swapdo.dev accounts from a
 // database seeded with demo data, keeping platform config, categories and admin@swapdo.dev.
 // `--if-live` (used by `vercel-build`) only acts on a Vercel deploy (production or preview) without DEMO_MODE=true.
 const db = new PrismaClient();
 const ADMIN_EMAIL = "admin@swapdo.dev";
-const DEMO_PASSWORD = "SwapdoDemo2026";
 
 async function main() {
   const live = process.env.VERCEL === "1" && process.env.DEMO_MODE !== "true";
@@ -14,8 +14,10 @@ async function main() {
 
   // The seeded admin must not keep the password printed in the README. Checked first so a failed build changes nothing.
   const admin = await db.user.findUnique({ where: { email: ADMIN_EMAIL } });
-  const adminHasDemoPassword = !!admin && (await bcrypt.compare(DEMO_PASSWORD, admin.passwordHash));
-  if (adminHasDemoPassword && !process.env.SEED_PASSWORD) throw new Error(`${ADMIN_EMAIL} still uses the public demo password. Set SEED_PASSWORD to replace it.`);
+  // Only the demo hash is ever replaced, so repeat builds and later password changes are left alone.
+  const adminHasDemoPassword = !!admin && (await verifyPassword(DEMO_PASSWORD, admin.passwordHash));
+  const seedPassword = adminHasDemoPassword ? readSeedPassword() : undefined;
+  if (adminHasDemoPassword && !seedPassword) throw new Error(`${ADMIN_EMAIL} still uses the public demo password. ${missingSeedPasswordHelp()}`);
 
   const sellerIds = (await db.seller.findMany({ where: { isDemo: true }, select: { id: true } })).map((s) => s.id);
   const serviceIds = (await db.service.findMany({ where: { OR: [{ isDemo: true }, { sellerId: { in: sellerIds } }] }, select: { id: true } })).map((s) => s.id);
@@ -40,8 +42,8 @@ async function main() {
     console.log(`Removed ${removed} demo listings, ${sellerIds.length} demo sellers and ${userIds.length} demo accounts.`);
   }
 
-  if (admin && adminHasDemoPassword) {
-    await db.user.update({ where: { id: admin.id }, data: { passwordHash: await bcrypt.hash(process.env.SEED_PASSWORD!, 12) } });
+  if (admin && seedPassword) {
+    await db.user.update({ where: { id: admin.id }, data: { passwordHash: await hashPassword(seedPassword) } });
     await db.session.deleteMany({ where: { userId: admin.id } });
     console.log(`Replaced the demo password of ${ADMIN_EMAIL} with SEED_PASSWORD.`);
   }

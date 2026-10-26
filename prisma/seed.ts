@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "node:crypto";
 import { DEMO_CATEGORIES, DEMO_SELLERS, DEMO_SERVICES, demoReviewsFor } from "../src/data/demo-catalog";
 import { DEFAULT_FEATURE_FLAGS, DEFAULT_MEMBERSHIP_PLANS, DEFAULT_PLATFORM_SETTINGS } from "../src/config/membership-plans";
+import { DEMO_PASSWORD, missingSeedPasswordHelp, readSeedPassword } from "./seed-password";
 
 const db = new PrismaClient();
-// One-click demo logins (DEMO_MODE=true) use this password, so leave SEED_PASSWORD unset on demo deployments.
-const DEMO_PASSWORD = "SwapdoDemo2026";
-const SEED_PASSWORD = process.env.SEED_PASSWORD || DEMO_PASSWORD;
+// One-click demo logins (DEMO_MODE=true) use DEMO_PASSWORD, so leave SEED_PASSWORD unset on demo deployments.
+const SEED_PASSWORD = readSeedPassword() ?? DEMO_PASSWORD;
 // Every Vercel deploy (production and preview) starts with platform config, categories and one admin, never the
 // demo catalog. Local development keeps it.
 const LIVE_SITE = process.env.VERCEL === "1" && process.env.DEMO_MODE !== "true";
@@ -34,9 +34,7 @@ async function main() {
     return;
   }
   // A real production site must not ship admin@swapdo.dev with the password printed in the README.
-  if (LIVE_SITE && !process.env.SEED_PASSWORD) {
-    throw new Error("Set SEED_PASSWORD (or DEMO_MODE=true) before the first production deploy — it becomes the password of admin@swapdo.dev.");
-  }
+  if (LIVE_SITE && SEED_PASSWORD === DEMO_PASSWORD) throw new Error(`${missingSeedPasswordHelp()} It becomes the password of admin@swapdo.dev.`);
   console.log("Resetting database…");
   await reset();
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 12);
